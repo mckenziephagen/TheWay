@@ -63,9 +63,9 @@ cd analysis
 
 # create dedicated input and output locations. Results will be pushed into the
 # output sibling and the analysis will start with a clone from the input sibling.
-datalad create-sibling-ria -s output "${output_store}" --new-store-ok
+datalad create-sibling-ria -s output "${output_store}"
 pushremote=$(git remote get-url --push output)
-datalad create-sibling-ria -s input  --storage-sibling off "${input_store}" --new-store-ok
+datalad create-sibling-ria -s input  --storage-sibling off "${input_store}"
 
 # register the input dataset
 echo "Cloning input dataset into analysis dataset"
@@ -73,12 +73,15 @@ datalad clone -d . ${BIDSINPUT} inputs/data
 # amend the previous commit with a nicer commit message
 git commit --amend -m 'Register input data dataset as a subdataset'
 
-SUBJECTS=$(find inputs/data -type d -name 'sub-*' | cut -d '/' -f 3 | sort)
+##NKI updated
+SUBJECTS=$(find inputs/data -name 'sub-*' | cut -d '/' -f 3 | cut -d '_' -f 1 | sort)
 if [ -z "${SUBJECTS}" ]
 then
     echo "No subjects found in input data"
     # exit 1
 fi
+
+echo $SUBJECTS
 
 # Clone the containers dataset. If specified on the command, use that path
 CONTAINERDS=$2
@@ -88,7 +91,7 @@ datalad install -d . --source ${CONTAINERDS} containers
 cat > code/participant_job.sh << "EOT"
 #!/bin/bash
 
-#SBATCH --partition=hns,normal,jyeatman
+#SBATCH --partition=normal,jyeatman
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
@@ -141,14 +144,15 @@ git checkout -b "${BRANCH}"
 # re-run we want to be able to do fine-grained recomputing of individual
 # outputs. The recorded calls will have specific paths that will enable
 # recomputation outside the scope of the original setup
-datalad get -n "inputs/data/${subid}"
+
+datalad get -n "inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip"
 
 # Reomve all subjects we're not working on
 (cd inputs/data && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
 
 # Unzip the subject subdir
 # TODO: change to unip into derivates 
-7z x ${subid}_${sesid}_qsiprep-0.14.2.zip 
+7z x ${subid}_ses-${sesid}_qsiprep-0.14.2.zip -oderivatives
 
 # ------------------------------------------------------------------------------
 # Do the run!
@@ -215,13 +219,13 @@ echo "parallel_segmentation = \"{'n_jobs': ${SLURM_NPROCS}, 'engine': 'joblib', 
 mkdir -p ${PWD}/.git/tmp/wdir
 
 singularity run --cleanenv -B ${PWD} \
-    containers/images/bids/bids-pyafq--0.12.sing \
+    containers/images/bids/bids-pyafq--0.12.sif \
     ${tomlfile}
    
 cd prep
 #zip results
 
-7z a ../${subid}_${sesid}_pyafq-0.12.zip afq
+7z a ../${subid}_ses-${sesid}_pyafq-0.12.zip afq
 rm -rf prep .git/tmp/wdir
 rm ${tomlfile}
 
@@ -256,9 +260,9 @@ dssource="${input_store}#$(datalad -f '{infos[dataset][id]}' wtf -S dataset)"
 pushgitremote=$(git remote get-url --push output)
 eo_args="-e ${PWD}/logs/%j.e -o ${PWD}/logs/%j.o"
 for subject in ${SUBJECTS}; do
-  SESSIONS=$(ls  inputs/data/$subject | grep ses- | cut -d '/' -f 1)
+  SESSIONS=$(find inputs/data/${subject}* | cut -d '_' -f 2 | cut -d '-' -f 2 )
   for session in ${SESSIONS}; do
-    echo "sbatch ${env_flags} ---job-name  qp${subject}_${session} ${eo_args} \
+    echo "sbatch ${env_flags} --job-name  qp${subject}_${session} ${eo_args} \
     ${PWD}/code/participant_job.sh \
     ${dssource} ${pushgitremote} ${subject} ${session}" >> code/sbatch_calls.sh
   done
@@ -272,7 +276,9 @@ datalad save -m "SLURM submission setup" code/ .gitignore
 # cleanup - we have generated the job definitions, we do not need to keep a
 # massive input dataset around. Having it around wastes resources and makes many
 # git operations needlessly slow
-datalad uninstall -r --nocheck inputs/data
+
+#if you're debugging inputs/data, this is problematic
+#datalad uninstall -r --nocheck inputs/data
 
 
 # make sure the fully configured output dataset is available from the designated

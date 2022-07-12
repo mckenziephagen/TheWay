@@ -63,9 +63,9 @@ cd analysis
 
 # create dedicated input and output locations. Results will be pushed into the
 # output sibling and the analysis will start with a clone from the input sibling.
-datalad create-sibling-ria -s output "${output_store}"
+datalad create-sibling-ria -s output "${output_store}" --new-store-ok
 pushremote=$(git remote get-url --push output)
-datalad create-sibling-ria -s input  --storage-sibling off "${input_store}"
+datalad create-sibling-ria -s input  --storage-sibling=off "${input_store}" --new-store-ok
 
 # register the input dataset
 echo "Cloning input dataset into analysis dataset"
@@ -151,21 +151,16 @@ datalad get -n "inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip"
 (cd inputs/data && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
 
 # Unzip the subject subdir
-# TODO: change to unip into derivates 
-7z x ${subid}_ses-${sesid}_qsiprep-0.14.2.zip -oderivatives
 
 # ------------------------------------------------------------------------------
-# Do the run!
-
 datalad run \
     -i code/pyafq_zip.sh \
-    -i inputs/data/${subid}/${sesid} \
-    -i "inputs/data/*json" \
-    -i containers/images/bids/bids-pyafq--0.12.sing \
+    -i inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip \
+    -i containers \
     --expand inputs \
     --explicit \
-    -o ${subid}_${sesid}_pyafq-0.12.zip \
-    -m "pyafq:0.12 ${subid} ${sesid}" \
+    -o ${subid}_ses-${sesid}_pyafq-0.12.zip \
+    -m "pyafq:0.12 ${subid} ses-${sesid}" \
     "bash ./code/pyafq_zip.sh ${subid} ${sesid}"
 
 # file content first -- does not need a lock, no interaction with Git
@@ -195,6 +190,7 @@ set -e -u -x
 
 subid="$1"
 sesid="$2"
+7z x "inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip" -oderivatives
 
 # Create a pyAFQ TOML configuration file
 tomlfile=${PWD}/${sesid}_pyafq_config.toml

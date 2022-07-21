@@ -108,8 +108,8 @@ pushgitremote="$2"
 subid="$3"
 sesid="$4"
 
-# change into the cluster-assigned temp directory.
-cd ${L_SCRATCH}
+# change into user SCRATCH space (change to L_SCRATCH for node-specific l-scratch)
+cd ${SCRATCH}
 
 
 # Used for the branch names and the temp dir
@@ -146,17 +146,17 @@ git checkout -b "${BRANCH}"
 # recomputation outside the scope of the original setup
 
 datalad get -n "inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip"
-
+echo datalad got
 # Reomve all subjects we're not working on
 (cd inputs/data && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
-
+echo unnecessary subjects removed
 # Unzip the subject subdir
 
 # ------------------------------------------------------------------------------
 datalad run \
     -i code/pyafq_zip.sh \
     -i inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip \
-    -i containers \
+    -i containers/.datalad/environments/pyafq-0-12/image \
     --expand inputs \
     --explicit \
     -o ${subid}_ses-${sesid}_pyafq-0.12.zip \
@@ -190,32 +190,42 @@ set -e -u -x
 
 subid="$1"
 sesid="$2"
-7z x "inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip" -oderivatives
+SLURM_NPROCS="1"
 
+7z x "inputs/data/${subid}_ses-${sesid}_qsiprep-0.14.2.zip" -oderivatives
+cp derivatives/qsiprep/dataset_description.json . 
 # Create a pyAFQ TOML configuration file
 tomlfile=${PWD}/${sesid}_pyafq_config.toml
-touch ${tomlfile}
+touch ${tomlfile} 
 
+echo "[BIDS_PARAMS]" >> ${tomlfile}
+echo "preproc_pipeline = \"qsiprep\"" >> ${tomlfile}
 echo "bids_path = \".\"" >> ${tomlfile}
-echo "preproc_pipeline" = \"qsiprep\"" >> ${tomlfile}
-echo "bids_filters" = \"{'desc': 'preproc'}\"" >> ${tomlfile}
+echo "bids_filters = \"{'desc': 'preproc'}\"" >> ${tomlfile}
 
+echo "[MAPPING]" >> ${tomlfile}
 echo "mapping_definition = \"ItkMap(warp_suffix='xfm', warp_filters={'from': 'MNI152NLin2009cAsym', 'to': 'T1w', 'scope': 'qsiprep'})\"" >> ${tomlfile}
+
+echo "[DATA]" >> ${tomlfile}
 echo "brain_mask_definition = \"ImageFile(suffix='mask', filters={'desc': 'brain', 'space': 'T1w', 'scope': 'qsiprep'})\"" >> ${tomlfile}
-echo "scalars = \"['dki_fa', 'dki_md', 'dki_awf', 'dki_mk']\"" >> ${tomlfile}
 echo "bundle_info = \"['ATR_L', 'ATR_R', 'CGC_L', 'CGC_R', 'CST_L', 'CST_R', 'IFO_L', 'IFO_R', 'ILF_L', 'ILF_R', 'SLF_L', 'SLF_R', 'ARC_L', 'ARC_R', 'UNC_L', 'UNC_R', 'AntFrontal', 'Motor', 'Occipital', 'Orbital', 'PostParietal', 'SupFrontal', 'SupParietal', 'Temporal']\"" >> ${tomlfile}
-echo "seed_mask = \"ScalarImage('dki_fa')\"" >> ${tomlfile}
-echo "stop_mask = \"ScalarImage('dki_fa')\"" >> ${tomlfile}
+
+echo "[SEGMENTATION]" >> ${tomlfile}
+echo "scalars = \"['dti_fa', 'dti_md']\"" >> ${tomlfile}
+
+echo "[TRACTOGRAPHY_PARAMS]" >> ${tomlfile}
+echo "seed_mask = \"ScalarImage('dti_fa')\"" >> ${tomlfile}
+echo "stop_mask = \"ScalarImage('dti_fa')\"" >> ${tomlfile}
 echo "odf_model = \"CSD\"" >> ${tomlfile}
 echo "directions = \"prob\"" >> ${tomlfile}
 
-
+echo "[SEGMENTATION_PARAMS]" >> ${tomlfile}
 echo "parallel_segmentation = \"{'n_jobs': ${SLURM_NPROCS}, 'engine': 'joblib', 'backend': 'loky'}\"" >> ${tomlfile}
 
 mkdir -p ${PWD}/.git/tmp/wdir
 
 singularity run --cleanenv -B ${PWD} \
-    containers/images/bids/bids-pyafq--0.12.sif \
+    containers/.datalad/environments/pyafq-0-12/image \
     ${tomlfile}
    
 cd prep
@@ -273,8 +283,9 @@ datalad save -m "SLURM submission setup" code/ .gitignore
 # massive input dataset around. Having it around wastes resources and makes many
 # git operations needlessly slow
 
-#if you're debugging inputs/data, this is problematic
-#datalad uninstall -r --nocheck inputs/data
+#if you're debugging inputs/data, this makes it hard to check what's being downloaded
+#but it does *really* slow down your datalad clone operations
+datalad uninstall -r --nocheck inputs/data
 
 
 # make sure the fully configured output dataset is available from the designated

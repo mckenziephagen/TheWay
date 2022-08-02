@@ -206,9 +206,6 @@ echo "preproc_pipeline = \"qsiprep\"" >> ${tomlfile}
 echo "bids_path = \".\"" >> ${tomlfile}
 echo "bids_filters = \"{'desc': 'preproc'}\"" >> ${tomlfile}
 
-echo "[MAPPING]" >> ${tomlfile}
-echo "mapping_definition = \"ItkMap(warp_suffix='xfm', warp_filters={'from': 'MNI152NLin2009cAsym', 'to': 'T1w', 'scope': 'qsiprep'})\"" >> ${tomlfile}
-
 echo "[DATA]" >> ${tomlfile}
 echo "brain_mask_definition = \"ImageFile(suffix='mask', filters={'desc': 'brain', 'space': 'T1w', 'scope': 'qsiprep'})\"" >> ${tomlfile}
 echo "bundle_info = \"['ATR_L', 'ATR_R', 'CGC_L', 'CGC_R', 'CST_L', 'CST_R', 'IFO_L', 'IFO_R', 'ILF_L', 'ILF_R', 'SLF_L', 'SLF_R', 'ARC_L', 'ARC_R', 'UNC_L', 'UNC_R', 'AntFrontal', 'Motor', 'Occipital', 'Orbital', 'PostParietal', 'SupFrontal', 'SupParietal', 'Temporal']\"" >> ${tomlfile}
@@ -221,6 +218,9 @@ echo "seed_mask = \"ScalarImage('dti_fa')\"" >> ${tomlfile}
 echo "stop_mask = \"ScalarImage('dti_fa')\"" >> ${tomlfile}
 echo "odf_model = \"CSD\"" >> ${tomlfile}
 echo "directions = \"prob\"" >> ${tomlfile}
+echo "seed_threshold = 0.2" >> ${tomlfile}
+echo "stop_threshold = 0.2" >> ${tomlfile}
+
 
 echo "[SEGMENTATION_PARAMS]" >> ${tomlfile}
 echo "parallel_segmentation = \"{'n_jobs': ${SLURM_NPROCS}, 'engine': 'joblib', 'backend': 'loky'}\"" >> ${tomlfile}

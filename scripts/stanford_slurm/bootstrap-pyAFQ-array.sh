@@ -163,7 +163,7 @@ datalad run \
     -i containers/.datalad/environments/pyafq-0-12-2/image \
     --expand inputs \
     --explicit \
-    -o ${subid}_ses-${sesid}_pyafq-0.12.zip \
+    -o ${subid}_ses-${sesid}_pyafq-0.12.2.zip \
     -m "pyafq:0.12 ${subid} ses-${sesid}" \
     "bash ./code/pyafq_zip.sh ${subid} ${sesid}"
 
@@ -232,7 +232,7 @@ singularity run --cleanenv -B ${PWD} \
     ${tomlfile}
    
 #zip results
-7z a ${subid}_ses-${sesid}_pyafq-0.12.zip derivatives/afq
+7z a ${subid}_ses-${sesid}_pyafq-0.12.2.zip derivatives/afq
 
 EOT
 

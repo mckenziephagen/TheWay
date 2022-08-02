@@ -175,7 +175,7 @@ flock $DSLOCKFILE git push outputstore
 echo TMPDIR TO DELETE
 echo ${BRANCH}
 
-datalad uninstall -r --nocheck --if-dirty ignore inputs/data
+datalad drop -r --nocheck inputs/data
 datalad drop -r . --nocheck
 git annex dead here
 cd ../..
@@ -233,6 +233,10 @@ singularity run --cleanenv -B ${PWD} \
    
 #zip results
 7z a ${subid}_ses-${sesid}_pyafq-0.12.2.zip derivatives/afq
+
+#clean up 
+rm -rf derivatives
+rm *.toml dataset_description.json
 
 EOT
 

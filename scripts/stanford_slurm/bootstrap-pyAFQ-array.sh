@@ -23,7 +23,7 @@ set -e -u
 
 
 ## Set up the directory that will contain the necessary directories
-PROJECTROOT=${PWD}/pyAFQ-array
+PROJECTROOT=${PWD}/pyAFQ-NKI
 if [[ -d ${PROJECTROOT} ]]
 then
     echo ${PROJECTROOT} already exists
@@ -94,7 +94,7 @@ datalad install -d . --source ${CONTAINERDS} containers
 cat > code/participant_job.sh << "EOT"
 #!/bin/bash
 
-#SBATCH --partition=normal,jyeatman
+#SBATCH --partition=normal
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
@@ -218,10 +218,9 @@ echo "seed_mask = \"ScalarImage('dti_fa')\"" >> ${tomlfile}
 echo "stop_mask = \"ScalarImage('dti_fa')\"" >> ${tomlfile}
 echo "odf_model = \"CSD\"" >> ${tomlfile}
 echo "directions = \"prob\"" >> ${tomlfile}
-echo "seed_threshold = 0.2" >> ${tomlfile}
-echo "stop_threshold = 0.2" >> ${tomlfile}
-
-
+echo "seed_threshold = 0.15" >> ${tomlfile}
+echo "stop_threshold = 0.15" >> ${tomlfile}
+echo "n_seeds = 2" >> ${tomlfile}
 echo "[SEGMENTATION_PARAMS]" >> ${tomlfile}
 echo "parallel_segmentation = \"{'n_jobs': ${SLURM_NPROCS}, 'engine': 'joblib', 'backend': 'loky'}\"" >> ${tomlfile}
 

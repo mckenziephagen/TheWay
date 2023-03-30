@@ -1,1 +1,0 @@
-../../../qsirecon-ABCD.sh

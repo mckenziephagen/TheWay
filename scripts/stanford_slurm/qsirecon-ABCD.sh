@@ -25,7 +25,7 @@ recon_json=$3
 recon_spec=$(basename ${recon_json} .json) 
 
 ## Set up the directory that will contain the necessary directories
-PROJECTROOT=${PWD}/${recon_spec}-qsirecon-ABCD
+PROJECTROOT=${PWD}/outputs/${recon_spec}-qsirecon-ABCD
 
 if [[ -d ${PROJECTROOT} ]]
 then
@@ -39,7 +39,6 @@ then
     # exit 1
 fi
 
-
 ## Check the BIDS input
 BIDSINPUT=$1
 if [[ -z ${BIDSINPUT} ]]
@@ -50,8 +49,11 @@ fi
 
 ## Start making things
 mkdir -p ${PROJECTROOT}
+cp $recon_json $PROJECTROOT
+
 cd ${PROJECTROOT}
 
+mkdir timing
 # Jobs are set up to not require a shared filesystem (except for the lockfile)
 # ------------------------------------------------------------------------------
 # RIA-URL to a different RIA store from which the dataset will be cloned from.
@@ -63,7 +65,9 @@ output_store="ria+file://${PROJECTROOT}/output_ria"
 # point.
 datalad create -c yoda analysis
 
-cp ../${recon_json} analysis/code
+mkdir analysis/code/jsons
+
+cp $(basename ${recon_json})  analysis/code/jsons
 
 cd analysis
 
@@ -165,7 +169,7 @@ echo datalad got
 (cd inputs/data && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
 echo unnecessary subjects removed
 
-timing_json="${GROUP_HOME}/datalad_processing/${recon_spec}-qsirecon-ABCD/${BRANCH}_timing.json"
+timing_json="${SCRATCH}/datalad_processing/outputs/${recon_spec}-qsirecon-ABCD/timing/${BRANCH}_timing.json"
 
 qsiprep_start=$SECONDS
 echo "{'datalad_setup': $(( $qsiprep_start - $datalad_start))" >> $timing_json
